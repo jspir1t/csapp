@@ -1,0 +1,7 @@
+services:
+    instance:
+        image: csapp
+        working_dir: /csapp
+        volumes:
+            - ".:/csapp"
+        tty: true

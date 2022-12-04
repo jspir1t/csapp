@@ -143,7 +143,7 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return x & (~y);
+  return ~((~(x & (~y))) & (~((~x) & y)));
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -163,7 +163,7 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return !((x + 1) ^(~x));
+  return !!(~x ^ 0) & !(x ^ (~(x + 1)));
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -174,7 +174,10 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return !((~x) ^ ((x << 1) + 1));
+  int lower = (170 << 8) | 170;
+  int total = (lower << 16) | lower;
+  int and = total & x;
+  return !(and ^ total);
 }
 /* 
  * negate - return -x 
@@ -197,7 +200,7 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return (!((x >> 1) ^ 15)) | (!((x >> 3) ^ 4));
+  return (!((x >> 1) ^ 28)) | (!((x >> 3) ^ 6));
 }
 /* 
  * conditional - same as x ? y : z 
@@ -207,7 +210,7 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  int t = !x - 1;
+  int t = (!x) + (~0);
   return (t & y) | (~t & z);
 }
 /* 
@@ -218,7 +221,8 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return !(((x + (~y + 1)) >> 31) & 1);
+  int divide = x + (~y + 1);
+  return !((!(x >> 31)) & (y >> 31)) & ((x >> 31 & !(y >> 31)) | !!(divide >> 31) | !(divide ^ 0));
 }
 //4
 /* 
@@ -230,7 +234,7 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return !(x >> 31 | (x + ~(1 << 31) >> 31));
+  return (1 & (x >> 31 | ((x + (~(1 << 31))) >> 31))) ^ 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -260,7 +264,21 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  int sign = uf & (0x1 << 31);
+  int E = (uf >> 23) & 0xff;
+  int M = uf & 0x7fffff;
+  // 0
+  if (M == 0 && E == 0) return uf;
+  // NaN or infinity
+  if(E == 0xff) return uf;
+  // denormalized
+  if(E == 0x0) return (uf << 1) | sign;
+  // normalized
+  E += 1;
+  // NaN
+  if(E == 0xff && M > 0) return uf;
+  // E + 1 => scale 2
+  return sign | (E << 23) | M;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -275,6 +293,12 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
+  int sign = uf & (0x1 << 31);
+  int exp = (uf >> 23) & 0xff;
+  int f = uf & 0x7fffff;
+  if (exp == 0xff) return 0x80000000u;
+  int E = exp == 0x0 ? -62 : exp - 63;
+  // int M = exp == 0x0 ? f : 1 + f;
   return 2;
 }
 /* 
