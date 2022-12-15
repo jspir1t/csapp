@@ -222,7 +222,7 @@ int conditional(int x, int y, int z) {
  */
 int isLessOrEqual(int x, int y) {
   int divide = x + (~y + 1);
-  return !((!(x >> 31)) & (y >> 31)) & ((x >> 31 & !(y >> 31)) | !!(divide >> 31) | !(divide ^ 0));
+  return (!((!(x >> 31)) & (y >> 31))) & ((x >> 31 & !(y >> 31)) | !!(divide >> 31) | !(divide ^ 0));
 }
 //4
 /* 
@@ -249,7 +249,14 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  int n = 0;
+  x ^= (x<<1);
+  n += ((!!(x&((~0)<<(n+16)))) << 4);
+  n += ((!!(x&((~0)<<(n+8)))) << 3);
+  n += ((!!(x&((~0)<<(n+4)))) << 2);
+  n += ((!!(x&((~0)<<(n+2)))) << 1);
+  n += (!!(x&((~0)<<(n+1))));
+  return n+1;
 }
 //float
 /* 
@@ -293,13 +300,25 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  int sign = uf & (0x1 << 31);
-  int exp = (uf >> 23) & 0xff;
-  int f = uf & 0x7fffff;
+  int sign = uf >> 31;
+  int exp = (uf & 0x7F800000) >> 23;
+  int M = uf & 0x007FFFFF;
+
   if (exp == 0xff) return 0x80000000u;
-  int E = exp == 0x0 ? -62 : exp - 63;
-  // int M = exp == 0x0 ? f : 1 + f;
-  return 2;
+  M = exp == 0 ? M : M | 0x00800000;  // when exp != 0: add 1. to the decimal, which is done by | 0x00800000
+  exp -= 127;
+
+  int ans;
+  if (exp >= 31) ans = 0x80000000;  // already overflow the representation of a int
+  else if (exp < 0) ans = 0;   // if the exp is smaller than 0, it is smaller than 1, which should be 0
+  else if (exp >= 23) {
+    ans = M << (exp - 23);
+  } else {
+    ans = M >> (23 - exp);
+  }
+
+  if (sign) ans = -ans;
+  return ans;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -315,5 +334,9 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    int exp;
+    if (x > 127) exp = 255;
+    else if (x < -126) exp = 0;
+    else exp = x + 127;
+    return exp << 23;
 }

@@ -1,0 +1,2 @@
+1. For the howManyBits part, I have no idea but to search for the answer on Google
+2. For the float problems, it is important to consider the overflow on exp and the frac part as the left_shift 23 version of original representation
